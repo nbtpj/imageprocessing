@@ -91,10 +91,10 @@ def ANMF(i: np.array) -> np.array:
         M = 3
 
         def hl(n, k, ys, yl, M):
-            return n ** (-k / M) * np.sum(np.linalg.norm(ys - yl))
+            return n ** (-k / M) * np.sum(np.linalg.norm(ys - yl, ord=1))
 
         def K(z):
-            return np.exp(-1 * np.linalg.norm(z))
+            return np.exp(-1 * np.linalg.norm(z, ord=1))
 
         ws = [hl(n, k, ys, yl, M) ** (-M) * K((y - yl) / hl(n, k, ys, yl, M)) for yl in ys]
         total = np.sum(ws)
