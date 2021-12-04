@@ -37,7 +37,8 @@ def conv2d(I: np.array, kernel, kernel_shape: Tuple = None) -> np.array:
                 dot = kernel(g)
             a.append(dot)
         rs.append(a)
-    return np.array(rs)
+    rs = np.array(rs)
+    return np.clip(rs, 0, 255)
 
 
 KERNEL_SHAPE = (3, 3)
@@ -45,6 +46,9 @@ KERNEL_SHAPE = (3, 3)
 
 def DDF(i: np.array) -> np.array:
     def DDF_estimator(window: np.array):
+        import copy
+
+        window = copy.deepcopy(window)
         points = window.reshape(-1, window.shape[-1])
         l2 = window / np.linalg.norm(window, axis=-1)[..., None]
         flatten = l2.reshape(-1, l2.shape[-1])
@@ -61,6 +65,7 @@ def DDF(i: np.array) -> np.array:
 
 def GVDF(i: np.array) -> np.array:
     def BVDF(window: np.array):
+
         points = window.reshape(-1, window.shape[-1])
         l2 = window / np.linalg.norm(window, axis=-1)[..., None]
         flatten = l2.reshape(-1, l2.shape[-1])
@@ -85,18 +90,19 @@ def ANMF(i: np.array) -> np.array:
         points = window.reshape(-1, window.shape[-1])
         mid_i = int(points.shape[0] / 2)
         y = points[mid_i]
-        ys = np.delete(points, mid_i, axis=0)
+        ys = points
+        # ys = np.delete(points, mid_i, axis=0)
         n = ys.shape[0]
         k = 1
         M = 3
 
         def hl(n, k, ys, yl, M):
-            return n ** (-k / M) * np.sum(np.linalg.norm(ys - yl, ord=1))
+            return (n ** (-k / M)) * np.sum(np.linalg.norm((ys - yl).reshape(-1), ord=1))
 
         def K(z):
-            return np.exp(-1 * np.linalg.norm(z, ord=1))
+            return np.exp(-1 * np.linalg.norm(z.reshape(-1), ord=1))
 
-        ws = [hl(n, k, ys, yl, M) ** (-M) * K((y - yl) / hl(n, k, ys, yl, M)) for yl in ys]
+        ws = [(hl(n, k, ys, yl, M) ** (-M)) * K((y - yl) / hl(n, k, ys, yl, M)) for yl in ys]
         total = np.sum(ws)
         samples = [yl * tl / total for yl, tl in zip(ys, ws)]
         return np.sum(samples, axis=0)
@@ -197,5 +203,3 @@ if __name__ == '__main__':
         print(filter.__name__)
         a = filter_plot(gauss, filter)
         b = filter_plot(impulsive, filter)
-
-
